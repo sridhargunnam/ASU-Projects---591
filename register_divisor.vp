@@ -1,0 +1,13 @@
+module `mname`(
+  input logic clk, rst,
+  input logic [23:0] reg_in,
+  output logic [23:0] reg_out);
+  always_ff@(posedge clk or negedge rst)
+    begin
+      if(!rst)
+        reg_out <= 0;
+      else
+        reg_out <= reg_in;
+    end
+endmodule:`mname`
+

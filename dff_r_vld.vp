@@ -1,0 +1,14 @@
+module `mname`(
+input logic clk,rst,
+input logic d_in,
+output logic d_out);
+
+always_ff@(posedge clk or negedge rst)
+begin
+if(!rst)
+d_out <= 1'b0;
+else
+d_out <= d_in;
+end
+endmodule:`mname`
+

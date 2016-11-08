@@ -1,0 +1,126 @@
+// Code your testbench here
+// or browse Examples
+//; my $bW = parameter( name=>"SqrBitWidth", val=>16, doc=>"Width of input");
+//; my $iW = parameter( name=>"RootIntWidth", val=>8, doc=>"Width of input");
+//; my $fW = parameter( name=>"RootFracWidth", val=>8, doc=>"Width of input");
+//; my $oW = $iW + $fW ;
+
+
+module tb();
+
+  logic [15:0] s;
+  logic [15:0] r;
+logic s_vld,s_rdy,clk,rst,r_vld;
+integer i,square_next,square_prev,cases,pass,fail,temp;
+real actual_root,poly,decimal_root,decimal_int,decimal_frac,diff;
+
+//; my $dut = generate_base('seqRoot','my_seqRoot',SqrBitWidth=>$bW,RootIntWidth=>$iW,RootFracWidth=>$fW);
+
+sqr abc(
+		.s(s),
+		.s_vld(s_vld),
+		.s_rdy(s_rdy),
+		.clk(clk),
+		.rst(rst),
+		.r_vld(r_vld),
+		.r(r)
+);
+
+
+
+
+//-------------------------------------------------------------------------------------------//
+initial
+begin
+clk=1'b0;
+forever
+#5 clk = ~clk;
+end
+always@(negedge clk)
+begin
+s=$random;
+end
+
+
+always@(posedge clk, posedge r_vld) 
+begin		
+
+	if((s_rdy)&&(s_vld)) 
+		begin
+		square_next<=s;
+		cases=cases+1;
+		end
+	else 
+		begin
+		square_next<=square_next;
+		square_prev<=square_next;
+		end
+	#1
+	if(r_vld)  
+		begin
+poly = r[7]*(1.0/2.0)+r[6]*(1.0/4.0)+r[5]*(1.0/8.0)+r[4]*(1.0/16.0)+r[3]*(1.0/32.0)
++r[2]*(1.0/64.0)+r[1]*(1.0/128.0)+r[0]*(1.0/256.0);
+	
+	decimal_int = r[15:8]*1.0; decimal_frac=poly; decimal_root=decimal_int+decimal_frac;
+          temp=square_prev[15:8];
+          actual_root = $sqrt(temp);
+	diff = actual_root-decimal_root;
+	//$display("%f",diff);
+	
+		if(diff<=0.004) 
+			begin
+              $display("success, square=%d.%d,decimal_root=%f answer is %f",square_prev[15:8],square_prev[7:0],decimal_root,actual_root);
+			pass=pass+1;
+			end
+		else 
+			begin
+              $display("success, square=%d.%d,decimal_root=%f answer is %f",square_prev[15:8],square_prev[7:0],decimal_root,actual_root);		fail=fail+1;
+			end
+	end
+	else 
+		begin
+		actual_root = $sqrt(0);
+		end
+	
+	
+end
+
+
+//---------------------------------------------------------------------------------------------------------------//
+
+initial
+begin
+//triggerStart = 1'b0 ;
+//triggerStop = 1'b0 ;
+#10
+//triggerStart = 1'b1 ;
+$display("%t Just started the trigger",$time);
+
+//----------------------------------------------ACTUAL STIMULUS START--------------------------------------------//
+cases=0;pass=0;fail=0;
+s_vld = 1'b0; 
+//s=16'd0; 
+#20 rst=1'b0;
+#10 rst=1'b1; //s=16'd64;
+//#30 s_vld=1'b0;//s=16'd100;
+//#20 s_vld=1'b1;
+//#50 s=16'd1;
+
+
+	for(i=0;i<200000;i++)
+	begin
+	#10;
+		if(i%10==2)	// keep any random single digit decimal value (0-9)
+		s_vld = 1'b0;
+		else
+		s_vld=1'b1;
+	end
+
+//triggerStop = 1'b1 ;
+#10
+cases = pass+fail; 
+$display("\n\n\tTotal number of cases: %0d, pass :%0d, fail: %0d ",cases,pass,fail);
+$display("\n\n\t Percentage of success = %f for absolute error difference diff = %f\n\n", (pass*100.0)/cases,0.04);
+$finish();
+end
+endmodule

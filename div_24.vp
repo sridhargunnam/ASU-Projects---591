@@ -1,0 +1,9 @@
+module `mname`(
+  input logic [23:0] num,
+  input logic [23:0] den,
+  output logic [23:0] quo,
+  output logic [23:0] rem);
+  assign quo = num / den;
+  assign rem = num % den;
+endmodule:`mname`
+

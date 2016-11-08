@@ -1,0 +1,64 @@
+//seqRoot.vp
+//; my $bW = parameter( name=>"SqrBitWidth", val=>16, doc=>"Width of input");
+//; my $iW = parameter( name=>"RootIntWidth", val=>8, doc=>"Width of input");
+//; my $fW = parameter( name=>"RootFracWidth", val=>8, doc=>"Width of input");
+//; my $oW = $iW + $fW ;
+
+module `mname`(
+  			input logic [15:0] s,
+			input logic s_vld,
+			output logic s_rdy,
+			input logic clk,
+			input logic rst,
+			output logic r_vld,
+  			output logic [15:0] r
+);
+
+  	logic [23:0] divident,divisor,partial_root,mux1_out,divisor_next,quo,rem;
+  	logic [31:0] quo_32,rem_32;
+  	logic [24:0] partial_p1,partial_p2,partial_root_temp;
+	logic comp_eq,d_in_s_rdy,d_out_s_rdy,d_in_r_vld,d_out_r_vld;
+  	logic set;
+  	assign set = (s_vld && d_out_s_rdy);
+  
+//; my $hw1 = generate('register_divident', 'registor_1'); 
+`$hw1->instantiate`(.clk(clk),.rst(rst),.set(set),.reg_in({s,8'd0}),.reg_out(divident));
+ 
+//; my $hw2=generate('mux','mux1');
+`$hw2->instantiate` (.mux_control(comp_eq),.mux_in1(divisor),.mux_in2(partial_root),.mux_out(mux1_out));
+//; my $hw3=generate('mux','mux2');  
+`$hw3->instantiate` (.mux_control(set),.mux_in1({16'd1,8'd0}),.mux_in2(mux1_out),.mux_out(divisor_next));
+  
+
+//; my $hw4 = generate('register_divisor','registor_2');
+`$hw4->instantiate`(.clk(clk), .rst(rst),.reg_in(divisor_next),.reg_out(divisor));
+
+//; my $hw5 = generate('div_24','div_unit24');
+`$hw5->instantiate`(.num(divident),.den(divisor),.quo(quo),.rem(rem));
+//; my $hw6 = generate('div_32','div_unit32');  
+`$hw6->instantiate` (.num({rem,8'd0}),.den({8'd0,divisor}),.quo(quo_32),.rem(rem_32));
+
+  assign partial_p1 = {1'b0,quo[15:0],quo_32[7:0]};
+  assign partial_p2 = {1'b0,divisor};
+  assign partial_root_temp = partial_p1 + partial_p2;
+  assign partial_root = partial_root_temp[24:1];
+  
+  assign comp_eq = ((partial_root == divisor) &&(~d_out_s_rdy)) ? 1'b1 : 1'b0;
+  
+//; my $hw7 = generate ('dff_s_rdy','s_ready_ff');  
+`$hw7->instantiate`(.clk(clk),.rst(rst),.d_in(d_in_s_rdy),.d_out(d_out_s_rdy));
+  
+  assign d_in_s_rdy = (divident == 0) ? 1'b1 : comp_eq;
+  
+  assign d_in_r_vld = comp_eq;
+  
+//; my $hw8 = generate('dff_r_vld','r_vld_ff');
+`$hw8->instantiate`(.clk(clk),.rst(rst),.d_in(d_in_r_vld),.d_out(d_out_r_vld));
+  
+  
+  assign r_vld = d_out_r_vld;
+  assign s_rdy = d_out_s_rdy;
+  assign r= partial_root[15:0];
+  
+endmodule: `mname`
+  
