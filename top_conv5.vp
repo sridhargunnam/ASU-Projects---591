@@ -1,0 +1,179 @@
+//; my $bW = parameter( name=>"bitWidth", val=>8, doc=>"Width of input");
+//; my $tp = parameter( name=>"taps", val=>5, doc=>"Number of taps");
+//; my $dl = parameter( name=>"Delay", val=>2, doc=>"Sequential delay");
+
+
+module `mname`;
+	logic [`$bW-1`:0] uD;
+//; for(my $i=0;$i<$tp;$i++) {
+	logic [`$bW-1`:0] t`$i`;
+//; }
+
+
+logic [`$bW-1`:0] fD;
+logic clk,rst;
+integer i,data_0,data_1,data_2,data_3,data_4,actual_value,pre_actual_value,cases,pass,fail;
+
+//; my $dut = generate_base("conv5","my_conv5",bitWidth=>$bW,taps=>$tp);
+`$dut->instantiate` (
+	.uD(uD),
+	.t0(t0),
+	.t1(t1),
+	.t2(t2),
+	.t3(t3),
+	.t4(t4),
+	.fD(fD),
+       // output logic [18:0] filteredData,
+	.clk(clk),
+	.rst(rst)
+);
+
+
+
+
+//---------------------------- CLOCK GENERATOR ----------------------------------//
+initial begin
+clk = 1'b0;
+forever
+#5 clk=~clk;
+end
+//---------------------------------------------------------------------------
+
+//; my $region = "my_conv5";
+//Capture the waves in top_HelloWorld.vp
+initial begin
+// if this is a "+wave" run, it must record all signals
+if ( $test$plusargs("wave") ) begin
+$display("%t: Starting Wave Capture",$time);
+// levels, instance
+$vcdpluson(0, `$region` );
+$vcdplusmemon(0, `$region` );
+end
+end // initial begin
+
+//------------------------------------------------------------------------//
+//; my $region = $self->mname() ;
+logic triggerStart, triggerStop ;
+logic foo ;
+initial begin
+foo = 1'b0;
+#1
+//$set_gate_level_monitoring("rtl_on");
+//$set_gate_level_monitoring("mda");
+$set_gate_level_monitoring("rtl_on","sv");
+$set_gate_level_monitoring("rtl_on","mda");
+#1
+$set_toggle_region(`$region`);
+#1
+@( posedge triggerStart );
+$display( "Starting Toggle Collection" );
+$toggle_start();
+#100000000
+foo = 1'b1;
+end
+
+//-----------------------------------------------------------------------------------------//
+
+initial begin
+#1
+@( posedge triggerStart );
+#1
+@( posedge triggerStop );
+$display( "Stopping Toggle Collection" );
+#1
+$toggle_stop();
+#1
+
+$toggle_report( "top.saif" , 1.0e-12 , `$region` );
+end
+//-----------------------------------------------------------------------------------------//
+
+
+
+
+
+// ------------------- Unfiltered Data uD generation ---------------------------------//
+/*
+always@(negedge clk)
+begin
+uD = $random();
+end
+*/
+//----------------------------- GOLD Reference -----------------------------------/
+always@(posedge clk)
+begin
+	if (rst==1'b1)
+	begin
+		data_0 <= uD; 
+		data_1 <= data_0; 
+		data_2 <= data_1;
+		data_3 <= data_2;
+		data_4 <= data_3;
+		pre_actual_value <= (t0*data_0+t1*data_1+t2*data_2+t3*data_3+t4*data_4)/256; 
+		cases = cases+1;
+		
+	#10     // HAHA .. Everything should get displayed one cycle after inputs are assigned. .
+
+		actual_value = pre_actual_value; 
+		
+		if(fD==actual_value)
+		begin
+		$display("success, fD=%d, d0=%3d, d1=%3d, d2=%3d, d3=%3d, d4=%3d  actual_value=%d",fD,data_0,data_1,data_2,data_3,data_4,actual_value);
+		pass=pass+1;
+		end
+		else
+		begin
+		$display("failure, fD=%d, d0=%3d, d1=%3d, d2=%3d, d3=%3d, d4=%3d  actual_value=%d",fD,data_0,data_1,data_2,data_3,data_4,actual_value);
+		fail=fail+1;
+		end
+	end
+
+end
+//-----------------------------------------------------------------------------------//
+
+
+	
+//---------------------------------------------------------------------------------------------------//
+initial
+begin
+triggerStart = 1'b0 ;
+triggerStop = 1'b0 ;
+#10
+triggerStart = 1'b1 ;
+$display("%t Just started the trigger",$time);
+
+cases=0;pass=0;fail=0;
+t0 = 8'd64; t1 = 8'd64; t2 = 8'd64; t3 = 8'd64; t4=8'd64; 
+#10 data_0=0;data_1=0;data_2=0;data_3=0;data_4=0;
+#30 rst = 1'b0;
+#10 rst = 1'b1;
+uD = 8'd1;
+#10 uD = 8'd2;
+#10 uD = 8'd3;
+#10 uD = 8'd4;
+#10 uD = 8'd5;
+#10 uD = 8'd6;
+#10 uD = 8'd7;
+#10 uD = 8'd8;
+#10 uD = 8'd9;
+#10 uD = 8'd10;
+#100;
+
+/*
+#10;
+
+	for (i=0;i<20000;i++)
+	begin
+	
+	#10;
+		
+	end
+
+triggerStop = 1'b1 ;
+#10
+
+*/
+$display("\n\n\tcases=%d, pass=%d, fail=%d",cases,pass,fail);
+$finish();
+end
+endmodule: `mname`

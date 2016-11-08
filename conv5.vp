@@ -1,0 +1,58 @@
+// conv5.vp
+//; use strict ;                   # Use a strict interpretation
+//; use warnings FATAL=>qw(all);   # Turn warnings into errors
+//; use diagnostics ;  
+
+
+
+//; # Parameters
+//; my $bW = parameter( name=>"bitWidth", val=>8, doc=>"Width of input");
+//; my $tp = parameter( name=>"taps", val=>5, doc=>"Number of elements stored in");
+//; my $dl = parameter( name=>"Delay", val=>8, doc=>"Sequential delay through the");
+module `mname` (
+	input logic [`$bW-1`:0] uD,
+	input logic [`$bW-1`:0] t0,
+	input logic [`$bW-1`:0] t1,
+	input logic [`$bW-1`:0] t2,
+	input logic [`$bW-1`:0] t3,
+	input logic [`$bW-1`:0] t4,
+	output logic [`$bW-1`:0] fD,
+	input logic clk,
+	input logic rst
+	);
+
+
+	logic [`2*$bW-1`:0]  mul[`$tp-1`:0]; 
+	logic [`2*$bW-1`:0] part_sum[`$tp-1`:0],  part_sum_next[`$tp-1`:0]  ;
+	logic [`$bW-1`:0] uDfloped,tff0,tff1,tff2,tff3,tff4;
+
+//; my $UDff = generate("dff", "UDffx", Width=>[($bW)]);
+`$UDff->instantiate()` ( .din(uD), .clk, .rst, .q(uDfloped) );
+
+//; for( my $i =0 ; $i < $tp ; $i++){
+//; my $tflop = generate("dff", "tffx".$i, Width=>[($bW)]);
+`$tflop->instantiate()` ( .din(t`$i`), .clk, .rst, .q(tff`$i`) );
+//;}
+	
+//; for( my $i =0 ; $i < $tp ; $i++){
+//; my $partSumFlop = generate("dff", "part_sum".$i, Width=>[(2*$bW)]);
+`$partSumFlop->instantiate()` ( .din(part_sum_next[`$i`]), .clk, .rst, .q(part_sum[`$i`]) );
+//; }
+
+// 5 multipliers	
+//; for( my $i = 0 ; $i < $tp ; $i++ ){
+//; my $par_testi = generate("par_test1", "par_testx".$i);
+`$par_testi->instantiate()` (uDfloped,tff`$i`,mul[`$i`],clk,rst) ;
+//; }
+
+
+// pipelines
+assign part_sum_next[`$tp-1`] = mul[`$tp-1`];
+
+//; for( my $i = 0 ; $i < $tp-1 ; $i++ ){
+assign part_sum_next[`$i`] = mul[`$i`] + part_sum[`$i+1`];
+//; }
+ 
+assign fD =  part_sum[0][`2*$bW-1`:`$bW`] ;
+
+endmodule

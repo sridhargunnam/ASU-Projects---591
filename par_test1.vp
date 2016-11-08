@@ -1,0 +1,60 @@
+// par_test1.vp 
+module `mname`(
+input logic [7:0] uf,
+input logic [7:0] tp,
+output logic [15:0] mul,
+input logic clk,
+input logic rst);
+
+logic [7:0] muluu,mulul,mullu,mulll,muluu_next,mulul_next,mullu_next,mulll_next;
+logic [15:0] mul_reg,mul_next,c1,c2;
+logic [15:0] add0,add0_next,add1,add1_next,add1a;
+always_ff@(posedge clk or negedge rst)
+	begin
+	if(!rst)
+		begin
+		muluu<=8'b0;
+		mulul<=8'b0;
+		mullu<=8'b0;
+		mulll<=8'b0;
+		mul_reg<=8'b0;
+		add1<=9'b0;
+		add0<=16'b0;
+		end
+	else begin
+		muluu<=muluu_next;
+		mulul<=mulul_next;
+		mullu<=mullu_next;
+		mulll<=mulll_next;
+		mul_reg<=mul_next;
+		add1<=add1_next;
+		add0<=add0_next;
+		end
+	end
+
+// 2cross2 multipliers	
+//; my $par_testiiuu = generate("par_test2", "par_testx2uu");
+`$par_testiiuu->instantiate()` (uf[7:4],tp[7:4],muluu_next,clk,rst) ;
+//; my $par_testiiul = generate("par_test2", "par_testx2ul");
+`$par_testiiul->instantiate()` (uf[7:4],tp[3:0],mulul_next,clk,rst) ;
+//; my $par_testiilu = generate("par_test2", "par_testx2lu");
+`$par_testiilu->instantiate()` (uf[3:0],tp[7:4],mullu_next,clk,rst) ;
+//; my $par_testiill = generate("par_test2", "par_testx2ll");
+`$par_testiill->instantiate()` (uf[3:0],tp[3:0],mulll_next,clk,rst) ;
+
+always_comb
+	begin
+//	muluu_next=uf[7:4]*tp[7:4];
+//	
+//	mulul_next=uf[7:4]*tp[3:0];
+//	mullu_next=uf[3:0]*tp[7:4];
+//	mulll_next=uf[3:0]*tp[3:0];
+	add0_next={muluu,mulll};
+	c1={1'b0,mulul};
+	c2={1'b0,mullu};
+	add1_next=c1+c2;
+	add1a={3'b0,add1,4'b0};
+	mul_next=add0+add1a;
+	end
+assign mul=mul_reg;
+endmodule
